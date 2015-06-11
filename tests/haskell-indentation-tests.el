@@ -14,11 +14,25 @@ line inserted in the buffer so if you need to test indentation
 *past* source code on empty line then an empty line must be
 specified.
 
+LINES should not use Unicode syntax. Instead, this check
+transforms LINES into Unicode syntax, and runs checks on both
+the original LINES and the Unicode version.
+
 Example of lines:
 
 \"func = do\"
 \"      x\"
 \"  ^\"
+"
+  (apply #'haskell-indentation-check-raw lines)
+  (apply #'haskell-indentation-check-raw (haskell-indentation-check-to-unicode lines)))
+
+
+(defun haskell-indentation-check-raw (&rest lines)
+  "Check if `haskell-indentation-find-indentations` returns expected list of positions.
+
+Use haskell-indentation-check instead, which automatically
+performs checks on Unicode syntax too.
 "
   (with-temp-buffer
     (haskell-mode)
@@ -42,6 +56,17 @@ Example of lines:
 
       (should (equal expected result)))))
 
+(defun haskell-indentation-check-to-unicode (lines)
+  "Replace ASCII tokens in LINES with their UnicodeSyntax counterparts."
+  (let ((lines-with-unicode nil))
+    (dolist (line lines)
+      (mapcar (lambda (element)
+                (let ((key (car element))
+                      (value (cdr element)))
+                  (setq line (replace-regexp-in-string value key line))))
+              haskell-indentation-unicode-tokens)
+      (add-to-list 'lines-with-unicode line t))
+    lines-with-unicode))
 
 (ert-deftest haskell-indentation-check-1 ()
   "Check if '{' on its own line gets properly indented"
